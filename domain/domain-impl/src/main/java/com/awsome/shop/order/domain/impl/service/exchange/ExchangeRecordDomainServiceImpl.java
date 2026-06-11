@@ -34,6 +34,11 @@ public class ExchangeRecordDomainServiceImpl implements ExchangeRecordDomainServ
     }
 
     @Override
+    public ExchangeRecordEntity getByRequestId(String requestId) {
+        return exchangeRecordRepository.getByRequestId(requestId);
+    }
+
+    @Override
     public PageResult<ExchangeRecordEntity> page(int page, int size, String keyword, String status,
                                                   LocalDateTime startTime, LocalDateTime endTime) {
         return exchangeRecordRepository.page(page, size, keyword, status, startTime, endTime);
@@ -72,8 +77,9 @@ public class ExchangeRecordDomainServiceImpl implements ExchangeRecordDomainServ
         if (!entity.cancellable()) {
             throw new BusinessException(OrderErrorCode.CANCEL_NOT_ALLOWED);
         }
+        String expected = entity.getStatus();
         entity.markCancelled();
-        exchangeRecordRepository.updateStatus(entity);
+        requireUpdated(exchangeRecordRepository.updateStatus(entity, expected));
         return entity;
     }
 
@@ -84,8 +90,9 @@ public class ExchangeRecordDomainServiceImpl implements ExchangeRecordDomainServ
         if (!entity.shippable()) {
             throw new BusinessException(OrderErrorCode.SHIP_NOT_ALLOWED);
         }
+        String expected = entity.getStatus();
         entity.markShipped();
-        exchangeRecordRepository.updateStatus(entity);
+        requireUpdated(exchangeRecordRepository.updateStatus(entity, expected));
         return entity;
     }
 
@@ -96,9 +103,19 @@ public class ExchangeRecordDomainServiceImpl implements ExchangeRecordDomainServ
         if (!entity.completable()) {
             throw new BusinessException(OrderErrorCode.COMPLETE_NOT_ALLOWED);
         }
+        String expected = entity.getStatus();
         entity.markCompleted();
-        exchangeRecordRepository.updateStatus(entity);
+        requireUpdated(exchangeRecordRepository.updateStatus(entity, expected));
         return entity;
+    }
+
+    /**
+     * 校验状态更新受影响行数；0 表示乐观锁版本不匹配（并发冲突），抛异常回滚以避免后续外部调用执行。
+     */
+    private void requireUpdated(int affectedRows) {
+        if (affectedRows == 0) {
+            throw new BusinessException(OrderErrorCode.ORDER_CONCURRENT_CONFLICT);
+        }
     }
 
     @Override

@@ -52,14 +52,42 @@ public class ExchangeRecordApplicationServiceImpl implements ExchangeRecordAppli
 
     @Override
     public ExchangeRecordDTO createExchange(CreateExchangeRequest request, Long userId) {
+        // OR-2 幂等：同一 requestId 重复提交直接返回已有订单，不重复扣积分/建单
+        if (!isBlank(request.getRequestId())) {
+            ExchangeRecordEntity existing = exchangeRecordDomainService.getByRequestId(request.getRequestId());
+            if (existing != null) {
+                log.info("[FR-O1] 下单幂等命中 requestId={} orderNo={}", request.getRequestId(), existing.getOrderNo());
+                return withShipping(existing);
+            }
+        }
+
         boolean physical = ProductType.PHYSICAL.name().equals(request.getProductType());
         // FR-O5：实物商品必须携带完整配送信息
         if (physical && (isBlank(request.getRecipient()) || isBlank(request.getAddress()) || isBlank(request.getPhone()))) {
             throw new ParameterException(OrderErrorCode.SHIPPING_INFO_REQUIRED);
         }
 
+        // FR-O1：服务端按 productId 向商品服务核价，杜绝信任客户端传入的 pointsCost（1 积分兑任意商品）
+        int unitPrice = request.getPointsCost();
+        ProductClient.ProductSnapshot snapshot = productClient.getSnapshot(request.getProductId());
+        if (snapshot != null) {
+            if (snapshot.status == null || snapshot.status != 1) {
+                throw new BusinessException(OrderErrorCode.PRODUCT_VALIDATION_FAILED, "商品已下架");
+            }
+            if (snapshot.pointsPrice == null) {
+                throw new BusinessException(OrderErrorCode.PRODUCT_VALIDATION_FAILED, "商品无有效积分价");
+            }
+            unitPrice = snapshot.pointsPrice;
+        }
+        // 用权威单价 × 数量计算总额，long 防溢出
+        long totalCost = (long) unitPrice * request.getQuantity();
+        if (totalCost <= 0 || totalCost > Integer.MAX_VALUE) {
+            throw new BusinessException(OrderErrorCode.PRODUCT_VALIDATION_FAILED, "兑换积分总额非法");
+        }
+
         ExchangeRecordEntity entity = new ExchangeRecordEntity();
         entity.setOrderNo(generateOrderNo());
+        entity.setRequestId(request.getRequestId());
         entity.setUserId(userId);
         entity.setProductId(request.getProductId());
         entity.setProductName(request.getProductName());
@@ -67,7 +95,7 @@ public class ExchangeRecordApplicationServiceImpl implements ExchangeRecordAppli
         entity.setQuantity(request.getQuantity());
         entity.setProductType(request.getProductType());
         entity.setEmployeeName(request.getEmployeeName());
-        entity.setPointsCost(request.getPointsCost() * request.getQuantity());
+        entity.setPointsCost((int) totalCost);
 
         ShippingInfoEntity shippingInfo = null;
         if (physical) {

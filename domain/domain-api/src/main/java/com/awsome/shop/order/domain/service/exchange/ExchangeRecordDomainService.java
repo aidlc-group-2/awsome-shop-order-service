@@ -14,6 +14,9 @@ public interface ExchangeRecordDomainService {
 
     ExchangeRecordEntity getById(Long id);
 
+    /** 按下单幂等键查询，未找到返回 null（不抛异常）。 */
+    ExchangeRecordEntity getByRequestId(String requestId);
+
     PageResult<ExchangeRecordEntity> page(int page, int size, String keyword, String status,
                                           LocalDateTime startTime, LocalDateTime endTime);
 

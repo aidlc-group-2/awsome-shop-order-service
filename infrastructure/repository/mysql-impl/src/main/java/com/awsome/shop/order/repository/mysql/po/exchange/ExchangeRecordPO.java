@@ -17,6 +17,8 @@ public class ExchangeRecordPO {
 
     private String orderNo;
 
+    private String requestId;
+
     private Long userId;
 
     private Long productId;

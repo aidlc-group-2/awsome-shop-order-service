@@ -15,6 +15,9 @@ import lombok.Data;
 @Data
 public class CreateExchangeRequest {
 
+    /** 下单幂等键（客户端生成，重复提交去重）。为空时退化为无幂等保护。 */
+    private String requestId;
+
     @NotNull(message = "商品ID不能为空")
     private Long productId;
 

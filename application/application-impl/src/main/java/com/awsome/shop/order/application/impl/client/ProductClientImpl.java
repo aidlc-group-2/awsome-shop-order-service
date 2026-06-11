@@ -48,6 +48,49 @@ public class ProductClientImpl implements ProductClient {
     }
 
     @Override
+    public ProductSnapshot getSnapshot(Long productId) {
+        // 库存特性开关关闭时，商品 private 接口未联调，跳过核价（WORKAROUND，与 reserveStock 一致）
+        if (!stockEnabled) {
+            log.warn("[FR-O1][WORKAROUND] 核价已禁用(shop.product.stock.enabled=false)，跳过商品快照校验 productId={}", productId);
+            return null;
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = webClient.get()
+                    .uri(baseUrl + "/api/v1/private/product/" + productId + "/snapshot")
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(timeout)
+                    .block();
+            if (result == null || result.get("data") == null) {
+                throw new BusinessException(OrderErrorCode.PRODUCT_VALIDATION_FAILED, "商品不存在");
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) result.get("data");
+            ProductSnapshot snapshot = new ProductSnapshot();
+            snapshot.id = productId;
+            snapshot.name = data.get("name") == null ? null : String.valueOf(data.get("name"));
+            snapshot.pointsPrice = toInt(data.get("pointsPrice"));
+            snapshot.status = toInt(data.get("status"));
+            snapshot.stock = toInt(data.get("stock"));
+            return snapshot;
+        } catch (BusinessException e) {
+            throw e;
+        } catch (WebClientResponseException e) {
+            log.error("[FR-O1] 商品核价被拒绝 productId={} status={} body={}",
+                    productId, e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BusinessException(OrderErrorCode.PRODUCT_VALIDATION_FAILED, "商品不存在或不可兑换");
+        } catch (Exception e) {
+            log.error("[FR-O1] 商品核价调用异常 productId={}", productId, e);
+            throw new BusinessException(OrderErrorCode.PRODUCT_VALIDATION_FAILED, e);
+        }
+    }
+
+    private Integer toInt(Object v) {
+        return v instanceof Number ? ((Number) v).intValue() : null;
+    }
+
+    @Override
     public String reserveStock(Long productId, int quantity, String orderRef) {
         // TODO(FR-O3): 商品服务 private 库存接口就绪后，将 shop.product.stock.enabled 置为 true 并完成联调。
         if (!stockEnabled) {

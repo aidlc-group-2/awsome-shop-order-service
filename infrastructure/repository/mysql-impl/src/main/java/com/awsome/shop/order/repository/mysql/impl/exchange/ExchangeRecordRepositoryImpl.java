@@ -43,6 +43,16 @@ public class ExchangeRecordRepositoryImpl implements ExchangeRecordRepository {
     }
 
     @Override
+    public ExchangeRecordEntity getByRequestId(String requestId) {
+        if (requestId == null || requestId.isBlank()) {
+            return null;
+        }
+        ExchangeRecordPO po = exchangeRecordMapper.selectOne(
+                new LambdaQueryWrapper<ExchangeRecordPO>().eq(ExchangeRecordPO::getRequestId, requestId));
+        return po == null ? null : toEntity(po);
+    }
+
+    @Override
     public Long save(ExchangeRecordEntity entity) {
         ExchangeRecordPO po = toPO(entity);
         exchangeRecordMapper.insert(po);
@@ -51,10 +61,13 @@ public class ExchangeRecordRepositoryImpl implements ExchangeRecordRepository {
     }
 
     @Override
-    public void updateStatus(ExchangeRecordEntity entity) {
-        ExchangeRecordPO po = exchangeRecordMapper.selectById(entity.getId());
-        po.setStatus(entity.getStatus());
-        exchangeRecordMapper.updateById(po);
+    public int updateStatus(ExchangeRecordEntity entity, String expectedStatus) {
+        // 条件更新（CAS）：WHERE id=? AND status=expected，受影响行数为 0 即并发冲突
+        return exchangeRecordMapper.update(null,
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<ExchangeRecordPO>()
+                        .eq(ExchangeRecordPO::getId, entity.getId())
+                        .eq(ExchangeRecordPO::getStatus, expectedStatus)
+                        .set(ExchangeRecordPO::getStatus, entity.getStatus()));
     }
 
     @Override
@@ -130,6 +143,7 @@ public class ExchangeRecordRepositoryImpl implements ExchangeRecordRepository {
         ExchangeRecordEntity entity = new ExchangeRecordEntity();
         entity.setId(po.getId());
         entity.setOrderNo(po.getOrderNo());
+        entity.setRequestId(po.getRequestId());
         entity.setUserId(po.getUserId());
         entity.setProductId(po.getProductId());
         entity.setProductName(po.getProductName());
@@ -150,6 +164,7 @@ public class ExchangeRecordRepositoryImpl implements ExchangeRecordRepository {
         ExchangeRecordPO po = new ExchangeRecordPO();
         po.setId(entity.getId());
         po.setOrderNo(entity.getOrderNo());
+        po.setRequestId(entity.getRequestId());
         po.setUserId(entity.getUserId());
         po.setProductId(entity.getProductId());
         po.setProductName(entity.getProductName());

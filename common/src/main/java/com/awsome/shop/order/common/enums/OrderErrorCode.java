@@ -29,7 +29,13 @@ public enum OrderErrorCode implements ErrorCode {
     POINTS_DEDUCT_FAILED("ORDER_004", "积分扣减失败"),
 
     /** Saga 步骤2失败：库存预占（FR-O3） */
-    STOCK_RESERVE_FAILED("ORDER_005", "库存预占失败");
+    STOCK_RESERVE_FAILED("ORDER_005", "库存预占失败"),
+
+    /** 并发更新冲突（乐观锁，状态已被其他请求变更） */
+    ORDER_CONCURRENT_CONFLICT("CONFLICT_002", "订单状态已被并发修改，请重试"),
+
+    /** 下游商品信息校验失败（价格/状态/类型不一致或商品不可兑换） */
+    PRODUCT_VALIDATION_FAILED("ORDER_006", "商品信息校验失败: {0}");
 
     private final String code;
     private final String message;

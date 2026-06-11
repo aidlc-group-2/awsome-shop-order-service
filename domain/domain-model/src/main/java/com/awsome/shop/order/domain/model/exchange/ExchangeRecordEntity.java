@@ -14,6 +14,7 @@ public class ExchangeRecordEntity {
 
     private Long id;
     private String orderNo;
+    private String requestId;
     private Long userId;
     private Long productId;
     private String productName;

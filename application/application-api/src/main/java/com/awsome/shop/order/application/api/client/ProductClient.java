@@ -8,6 +8,28 @@ package com.awsome.shop.order.application.api.client;
 public interface ProductClient {
 
     /**
+     * 获取商品权威快照（下单核价，FR-O1）。
+     *
+     * <p>用于校验客户端传入的积分价与商品上下架状态，杜绝伪造低价兑换。
+     * 商品不存在 / 下架 / 调用失败时抛业务异常。</p>
+     *
+     * @param productId 商品ID
+     * @return 权威快照（积分单价、上下架状态、库存）
+     */
+    ProductSnapshot getSnapshot(Long productId);
+
+    /**
+     * 商品权威快照。
+     */
+    class ProductSnapshot {
+        public Long id;
+        public String name;
+        public Integer pointsPrice;
+        public Integer status;
+        public Integer stock;
+    }
+
+    /**
      * 兑换下单时预占库存（非立即扣减，FR-O3）。
      *
      * @param productId 商品ID
