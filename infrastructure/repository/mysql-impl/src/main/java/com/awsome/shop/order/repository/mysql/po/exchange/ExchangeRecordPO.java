@@ -17,9 +17,19 @@ public class ExchangeRecordPO {
 
     private String orderNo;
 
+    private Long userId;
+
+    private Long productId;
+
     private String productName;
 
     private String productDesc;
+
+    private Integer quantity;
+
+    private String productType;
+
+    private String reservationId;
 
     private String employeeName;
 

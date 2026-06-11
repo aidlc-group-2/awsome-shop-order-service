@@ -12,12 +12,17 @@ public class ExchangeRecordDTO {
 
     private Long id;
     private String orderNo;
+    private Long userId;
+    private Long productId;
     private String productName;
     private String productDesc;
+    private Integer quantity;
+    private String productType;
     private String employeeName;
     private Integer pointsCost;
     private LocalDateTime exchangeTime;
     private String status;
+    private ShippingInfoDTO shippingInfo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

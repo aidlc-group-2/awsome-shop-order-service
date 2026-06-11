@@ -31,8 +31,21 @@ spring:
     # 忽略找不到的迁移脚本（本地开发环境数据库可能包含已删除的迁移）
     ignore-migration-patterns: "*:missing,*:future"
 
+# 兑换服务端口 8004（services.md §1 服务清单）
 server:
-  port: 8080
+  port: 8004
+
+# 下游服务出站调用配置（Saga：积分扣减/退回、库存预占/释放/扣减）
+shop:
+  points:
+    base-url: http://localhost:8003
+    timeout: 5s
+  product:
+    base-url: http://localhost:8002
+    timeout: 5s
+    stock:
+      # WORKAROUND: 商品服务 private 库存接口尚未实现，就绪后置为 true（搜索 TODO(FR-O3)）
+      enabled: false
 
 # MyBatis-Plus 配置
 mybatis-plus:

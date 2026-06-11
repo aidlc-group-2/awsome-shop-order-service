@@ -1,4 +1,4 @@
-package com.awsome.shop.order.repository.mysql.po.test;
+package com.awsome.shop.order.repository.mysql.po.exchange;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
@@ -6,18 +6,22 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * Test 持久化对象
+ * 配送信息 持久化对象
  */
 @Data
-@TableName("test")
-public class TestPO {
+@TableName("shipping_info")
+public class ShippingInfoPO {
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    private String name;
+    private Long exchangeRecordId;
 
-    private String description;
+    private String recipient;
+
+    private String address;
+
+    private String phone;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
